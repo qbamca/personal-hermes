@@ -2,7 +2,8 @@
 # Hello world:  ./deploy.sh hello
 # Dev shell:    ./deploy.sh dev
 # Web UI:       ./deploy.sh webui
-# Gateway:      ./deploy.sh gateway
+# Gateway:      ./deploy.sh gateway   (+ socket-proxy sidecar)
+# Growatt:      add `growatt` to COMPOSE_PROFILES in .env, then ./deploy.sh gateway
 
 x-hermes: &hermes
   build:
@@ -29,6 +30,7 @@ services:
       - ${HERMES_DATA_DIR:-./data/hermes}:/opt/data
       - ./skills:/workspace/skills:ro
       - ./skill-bundles:/opt/data/skill-bundles:ro
+      - ${GROWATT_AUDIT_DIR:-./data/growatt-bridge}:/workspace/growatt-audit:ro
     stdin_open: true
     tty: true
 
@@ -69,6 +71,45 @@ services:
       HERMES_WEBUI_STATE_DIR: /home/hermeswebui/.hermes/webui
       HERMES_HOME: /home/hermeswebui/.hermes
 
+  # Docker socket proxy — lets the gateway start/stop/restart containers and
+  # tail logs via HTTP without exposing the full Docker daemon.
+  # Bound to 127.0.0.1 only; gateway (host networking) reaches it via localhost.
+  socket-proxy:
+    profiles: [gateway]
+    image: tecnativa/docker-socket-proxy:latest
+    container_name: hermes-socket-proxy
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:2375:2375"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    environment:
+      CONTAINERS: 1       # list, inspect, logs
+      POST: 1             # allow POST requests
+      ALLOW_START: 1      # /containers/{id}/start
+      ALLOW_STOP: 1       # /containers/{id}/stop
+      ALLOW_RESTARTS: 1   # /containers/{id}/restart
+      LOG_LEVEL: warning
+
+  growatt-bridge:
+    profiles: [growatt]
+    platform: linux/amd64
+    image: ${GROWATT_BRIDGE_IMAGE:-ghcr.io/qbamca/growatt-bridge:latest}
+    container_name: growatt-bridge
+    restart: unless-stopped
+    ports:
+      - "${GROWATT_BRIDGE_PORT:-8081}:8081"
+    volumes:
+      - ${GROWATT_AUDIT_DIR:-./data/growatt-bridge}:/var/log/growatt-bridge
+    env_file:
+      - .env.growatt
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8081/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+
   gateway:
     <<: *hermes
     profiles: [gateway]
@@ -77,10 +118,14 @@ services:
     network_mode: host
     volumes:
       - ${HERMES_DATA_DIR:-./data/hermes}:/opt/data
+      - ${GROWATT_AUDIT_DIR:-./data/growatt-bridge}:/opt/data/workspace/growatt-audit:ro
     environment:
       HERMES_UID: ${HERMES_UID:-1000}
       HERMES_GID: ${HERMES_GID:-1000}
       TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:-}
+      # Docker socket proxy — used by the service-control skill to
+      # start/stop/restart containers and tail logs via HTTP.
+      DOCKER_HOST: tcp://localhost:2375
     command: ["gateway", "run"]
 
 volumes:

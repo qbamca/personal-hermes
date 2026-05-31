@@ -79,8 +79,21 @@ case "$cmd" in
   gateway)
     load_env
     seed_config
-    docker compose --profile gateway up -d gateway
-    echo "Gateway started. Configure channels: docker compose --profile gateway run --rm gateway gateway setup"
+    # If growatt profile is active, require .env.growatt
+    if [[ "${COMPOSE_PROFILES:-}" == *growatt* ]]; then
+      if [[ ! -f .env.growatt ]]; then
+        echo "ERROR: COMPOSE_PROFILES includes 'growatt' but .env.growatt is missing." >&2
+        echo "       Copy .env.growatt.example to .env.growatt and set GROWATT_API_TOKEN." >&2
+        exit 1
+      fi
+      mkdir -p "${GROWATT_AUDIT_DIR:-./data/growatt-bridge}"
+      docker compose --profile gateway --profile growatt up -d gateway socket-proxy growatt-bridge
+      echo "Gateway + growatt-bridge started."
+      echo "Bridge health: curl http://localhost:${GROWATT_BRIDGE_PORT:-8081}/health"
+    else
+      docker compose --profile gateway up -d gateway socket-proxy
+      echo "Gateway started. Add COMPOSE_PROFILES=growatt in .env to also start growatt-bridge."
+    fi
     ;;
   -h|--help|help)
     usage
