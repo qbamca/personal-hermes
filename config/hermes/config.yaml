@@ -4,3 +4,7 @@
 model:
   provider: openai-codex
   default: gpt-5.4-mini
+
+skills:
+  external_dirs:
+    - /workspace/skills
