@@ -2,5 +2,5 @@
 # Docs: https://hermes-agent.nousresearch.com/docs/user-guide/configuration
 
 model:
-  provider: anthropic
-  default: claude-sonnet-4-6
+  provider: codex-oauth
+  default: gpt-4o

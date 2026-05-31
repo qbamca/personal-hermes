@@ -6,25 +6,29 @@ Personal [Hermes Agent](https://github.com/NousResearch/hermes-agent) workspace 
 
 **Prerequisites:** Docker Engine 20.10+ and Compose v2 (`docker compose version`).
 
-**Auth (one-time):** Hermes uses Claude Max OAuth. Since browser OAuth can't run inside a container, do this on the host first:
+**Auth (one-time):** Hermes uses Codex OAuth. Since browser OAuth can't run inside a container, do this on the host first:
 
 ```bash
 # Install Hermes locally (one-time)
 curl -fsSL https://hermes-agent.nousresearch.com/install.sh | bash
 
-# Authenticate with Claude Max
+# Authenticate with Codex (OpenAI subscription)
 hermes model
-# → Select: Anthropic → OAuth → complete browser login
+# → Select: OpenAI Codex → complete device code / browser login
 
 # Copy credentials into the repo data dir
 mkdir -p data/hermes
 cp ~/.hermes/auth.json data/hermes/
-# Also copy ~/.hermes/.env if it exists
+```
+
+If you already have the Codex CLI installed and logged in, you can copy from there instead:
+
+```bash
+mkdir -p data/hermes
+cp ~/.codex/auth.json data/hermes/
 ```
 
 Once `data/hermes/auth.json` exists, all Docker commands will use it automatically.
-
-> **Note:** Claude Max OAuth has known bugs in upstream issue [#12905](https://github.com/NousResearch/hermes-agent/issues/12905). If `hermes model` fails, set `CLAUDE_CODE_OAUTH_TOKEN` directly in `data/hermes/.env` — the token is stored in your macOS Keychain by Claude Code.
 
 ## Hello world
 
