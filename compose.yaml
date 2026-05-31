@@ -32,8 +32,24 @@ services:
     stdin_open: true
     tty: true
 
+  # Copies /opt/hermes from the hermes image into a named volume so webui
+  # can install hermes-agent's Python deps from source. Runs once per
+  # `deploy.sh webui` invocation (cp is fast on subsequent runs).
+  # Bypasses s6-overlay (entrypoint override) so the copy runs as root
+  # and can write to the initially root-owned named volume.
+  hermes-src-init:
+    image: personal-hermes/hermes:v2026.5.29.2
+    profiles: [webui]
+    entrypoint: ["sh", "-c", "cp -rp /opt/hermes/. /target/ && chmod -R a+rX /target"]
+    volumes:
+      - hermes-agent-src:/target
+    restart: "no"
+
   webui:
     profiles: [webui]
+    depends_on:
+      hermes-src-init:
+        condition: service_completed_successfully
     build:
       context: https://github.com/nesquena/hermes-webui.git#v0.51.99
       dockerfile: Dockerfile
@@ -44,11 +60,14 @@ services:
       - "127.0.0.1:8787:8787"
     volumes:
       - ${HERMES_DATA_DIR:-./data/hermes}:/home/hermeswebui/.hermes
+      - hermes-agent-src:/opt/hermes:ro
     environment:
       WANTED_UID: ${HERMES_UID:-1000}
       WANTED_GID: ${HERMES_GID:-1000}
       HERMES_WEBUI_HOST: 0.0.0.0
       HERMES_WEBUI_PORT: "8787"
+      HERMES_WEBUI_STATE_DIR: /home/hermeswebui/.hermes/webui
+      HERMES_HOME: /home/hermeswebui/.hermes
 
   gateway:
     <<: *hermes
@@ -63,3 +82,6 @@ services:
       HERMES_GID: ${HERMES_GID:-1000}
       TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:-}
     command: ["gateway", "run"]
+
+volumes:
+  hermes-agent-src:
