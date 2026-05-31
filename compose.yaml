@@ -1,0 +1,47 @@
+# Hermes Agent — personal deployment
+# Hello world:  ./deploy.sh hello
+# Dev shell:    ./deploy.sh dev
+# Gateway:      ./deploy.sh gateway
+
+x-hermes: &hermes
+  build:
+    context: https://github.com/NousResearch/hermes-agent.git#v2026.5.29.2
+    dockerfile: Dockerfile
+  image: personal-hermes/hermes:v2026.5.29.2
+  environment:
+    HERMES_UID: ${HERMES_UID:-1000}
+    HERMES_GID: ${HERMES_GID:-1000}
+  init: true
+
+services:
+  hello:
+    <<: *hermes
+    volumes:
+      - ${HERMES_DATA_DIR:-./data/hermes}:/opt/data
+    command:
+      - -z
+      - Reply with exactly one short hello sentence. Do not use tools.
+
+  dev:
+    <<: *hermes
+    profiles: [dev]
+    volumes:
+      - ${HERMES_DATA_DIR:-./data/hermes}:/opt/data
+      - ./skills:/workspace/skills:ro
+      - ./skill-bundles:/opt/data/skill-bundles:ro
+    stdin_open: true
+    tty: true
+
+  gateway:
+    <<: *hermes
+    profiles: [gateway]
+    container_name: hermes-gateway
+    restart: unless-stopped
+    network_mode: host
+    volumes:
+      - ${HERMES_DATA_DIR:-./data/hermes}:/opt/data
+    environment:
+      HERMES_UID: ${HERMES_UID:-1000}
+      HERMES_GID: ${HERMES_GID:-1000}
+      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:-}
+    command: ["gateway", "run"]

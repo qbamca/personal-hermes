@@ -1,0 +1,6 @@
+# Prod config — seeded into data/hermes/ on first deploy (see deploy.sh).
+# Docs: https://hermes-agent.nousresearch.com/docs/user-guide/configuration
+
+model:
+  provider: anthropic
+  default: claude-sonnet-4-6

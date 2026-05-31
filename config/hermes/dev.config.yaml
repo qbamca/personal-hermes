@@ -1,0 +1,12 @@
+# Dev config — always written to data/hermes/ by ./deploy.sh dev|test.
+# Docs: https://hermes-agent.nousresearch.com/docs/user-guide/configuration
+
+model:
+  provider: anthropic
+  default: claude-sonnet-4-6
+
+skills:
+  # ./skills/ is mounted read-only at /workspace/skills in the dev container.
+  # Hermes discovers skills here but still writes new ones to /opt/data/skills/.
+  external_dirs:
+    - /workspace/skills
