@@ -2,5 +2,5 @@
 # Docs: https://hermes-agent.nousresearch.com/docs/user-guide/configuration
 
 model:
-  provider: codex-oauth
-  default: gpt-4o
+  provider: openai-codex
+  default: gpt-5.4-mini
