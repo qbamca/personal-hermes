@@ -74,6 +74,7 @@ Changes to files in `skills/` are reflected immediately — no container restart
 | `./deploy.sh build` | Build image only |
 | `./deploy.sh dev` | Interactive dev shell with skills mounted |
 | `./deploy.sh test "<prompt>"` | One-shot with dev skills mounted |
+| `./deploy.sh webui` | Start web UI at http://localhost:8787 |
 | `./deploy.sh gateway` | Start messaging gateway (Linux; host network) |
 
 ## Repo layout

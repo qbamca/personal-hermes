@@ -5,16 +5,14 @@ cd "$(dirname "$0")"
 
 usage() {
   cat <<'EOF'
-Usage: ./deploy.sh [hello|build|dev|test "<prompt>"|gateway]
+Usage: ./deploy.sh [hello|build|dev|test "<prompt>"|webui|gateway]
 
   hello           One-shot sanity check. Builds image on first run.
   build           Build the Hermes image only.
   dev             Interactive dev shell with skills/ and skill-bundles/ mounted.
   test "<prompt>" One-shot with dev skills mounted. E.g.: ./deploy.sh test "use /my-skill"
+  webui           Start web UI at http://localhost:8787 (profile webui).
   gateway         Start messaging gateway (profile gateway; Linux host network).
-
-Auth: run `hermes model` locally after first install to complete Claude Max OAuth,
-then copy ~/.hermes/auth.json to data/hermes/. See README for details.
 EOF
 }
 
@@ -71,6 +69,12 @@ case "$cmd" in
     load_env
     seed_dev_config
     docker compose --profile dev run --rm dev -z "$2"
+    ;;
+  webui)
+    load_env
+    seed_config
+    docker compose --profile webui up -d webui
+    echo "Web UI started → http://localhost:8787"
     ;;
   gateway)
     load_env
