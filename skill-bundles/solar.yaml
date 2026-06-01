@@ -1,5 +1,7 @@
 name: solar
-description: Solar PV monitoring and inverter management — live telemetry, battery state, grid exchange, write operations, and generation forecasts.
+description: Solar PV monitoring and inverter management — live telemetry, battery state, grid exchange, write operations, generation forecasts, and energy dispatch decisions.
 skills:
   - growatt-bridge
   - pv-forecast
+  - solar-monitor
+  - energy-manager
