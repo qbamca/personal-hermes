@@ -9,7 +9,7 @@ Use this skill to fetch PV generation forecasts from `forecast.solar`, keep per-
 
 ## Quick workflow
 
-1. Read local installation notes in `TOOLS.md` if available.
+1. Read local installation notes in `TOOLS.md` if available; also check `references/user-installation-notes.md` for any saved site geometry.
 2. Use the free-tier single-plane route for each roof string.
 3. Combine east and west locally by day or timestamp.
 4. Reuse cached data unless the user explicitly needs a fresh pull.
@@ -25,6 +25,12 @@ For each string, gather:
 - tilt / declination
 - orientation or forecast.solar azimuth
 - capacity in kWp
+
+If the roof is east/west and the exact bearing is uncertain, a near-even split plus slightly south-biased azimuths is often a useful first approximation; refine when the user gives better geometry.
+
+If exact site inputs are missing, ask for a city/address or location pin first and clearly mark the result as an estimate. Do not invent orientation, tilt, or kWp values from thin air.
+
+See `references/input-checklist.md` for a compact input checklist and fallback rules.
 
 ## forecast.solar conventions
 

@@ -1,0 +1,15 @@
+# Solar profile config — seeded into data/hermes/profiles/solar/ on first deploy.
+# Docs: https://hermes-agent.nousresearch.com/docs/user-guide/configuration
+
+model:
+  provider: openai-codex
+  default: gpt-5.4-mini
+
+skills:
+  external_dirs:
+    - /workspace/skills
+  always_load:
+    - growatt-bridge
+    - pv-forecast
+    - solar-monitor
+    - service-control

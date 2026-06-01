@@ -26,6 +26,15 @@ HTTP bridge around **Growatt OpenAPI V1** with a **safety layer**: writes are **
 - **`GET /health`** — unauthenticated host connectivity check (DNS/TLS to `GROWATT_SERVER_URL` only, no API call); returns `cloud_reachable` and `status` (`ok` / `degraded`).
 - **`GET /info`** — package version, `readonly`, `allowed_write_operations` (parsed allowlist), default device/plant from env.
 
+## Operational triage
+
+When asked whether the bridge is working, check in this order:
+1. `GET /health` to confirm cloud reachability.
+2. `GET /info` to confirm readonly/allowlist defaults and the active default device/plant.
+3. `GET /api/v1/devices/{device_sn}/telemetry` to verify live device data.
+
+A telemetry response may still arrive even if the inverter is marked `lost: true` or `status_text: Fault`; treat connectivity, device liveness, and fault state as separate signals.
+
 ## Audit log (inside hermes containers)
 
 The write audit log is mounted read-only at:

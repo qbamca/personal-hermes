@@ -27,15 +27,22 @@ load_env() {
   export HERMES_GID="${HERMES_GID:-$(id -g)}"
 }
 
-# Seed prod config — only if not already present (preserves user edits).
-seed_config() {
-  local dest="${HERMES_DATA_DIR:-./data/hermes}/config.yaml"
-  if [[ ! -f "$dest" ]]; then
-    mkdir -p "$(dirname "$dest")"
-    cp config/hermes/config.yaml "$dest"
-    echo "Seeded $dest"
-  fi
+# Seed a profile config — only if not already present (preserves user edits).
+# Usage: seed_profile_config <profile_name> <dest_dir>
+seed_profile_config() {
+  local profile="$1" dest_dir="$2"
+  mkdir -p "$dest_dir"
+  for file in config.yaml .env; do
+    local src="profiles/$profile/$file" dest="$dest_dir/$file"
+    if [[ -f "$src" && ! -f "$dest" ]]; then
+      cp "$src" "$dest"
+      echo "Seeded $dest"
+    fi
+  done
 }
+
+seed_config()       { seed_profile_config default "${HERMES_DATA_DIR:-./data/hermes}"; }
+seed_solar_config() { seed_profile_config solar   "${HERMES_DATA_DIR:-./data/hermes}/profiles/solar"; }
 
 # Seed dev config — always overwrite so changes in config/hermes/dev.config.yaml take effect.
 seed_dev_config() {
@@ -43,6 +50,20 @@ seed_dev_config() {
   mkdir -p "$(dirname "$dest")"
   cp config/hermes/dev.config.yaml "$dest"
   echo "Seeded dev config → $dest"
+}
+
+# Start the solar profile gateway inside the running container.
+# Waits up to 60 s for the container to finish initialising, then starts solar gateway.
+start_solar_gateway() {
+  local container="hermes-gateway"
+  echo "Waiting for $container to be ready..."
+  local i=0
+  until docker exec "$container" hermes gateway list &>/dev/null; do
+    sleep 3; i=$((i+3))
+    [[ $i -ge 60 ]] && { echo "WARNING: $container not ready after 60 s — skipping solar gateway start"; return; }
+  done
+  docker exec "$container" solar gateway start 2>/dev/null || true
+  echo "Solar gateway started."
 }
 
 cmd="${1:-hello}"
@@ -79,6 +100,7 @@ case "$cmd" in
   gateway)
     load_env
     seed_config
+    seed_solar_config
     # If growatt profile is active, require .env.growatt
     if [[ "${COMPOSE_PROFILES:-}" == *growatt* ]]; then
       if [[ ! -f .env.growatt ]]; then
@@ -94,6 +116,7 @@ case "$cmd" in
       docker compose --profile gateway up -d gateway socket-proxy
       echo "Gateway started. Add COMPOSE_PROFILES=growatt in .env to also start growatt-bridge."
     fi
+    start_solar_gateway
     ;;
   -h|--help|help)
     usage
