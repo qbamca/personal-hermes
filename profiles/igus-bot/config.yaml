@@ -1,0 +1,9 @@
+# igus-bot profile config — seeded into data/hermes/profiles/igus-bot/ on first deploy.
+
+model:
+  provider: openai-codex
+  default: gpt-5.4
+
+skills:
+  external_dirs:
+    - /workspace/skills

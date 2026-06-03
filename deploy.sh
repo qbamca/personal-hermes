@@ -41,8 +41,9 @@ seed_profile_config() {
   done
 }
 
-seed_config()       { seed_profile_config default "${HERMES_DATA_DIR:-./data/hermes}"; }
-seed_solar_config() { seed_profile_config solar   "${HERMES_DATA_DIR:-./data/hermes}/profiles/solar"; }
+seed_config()          { seed_profile_config default    "${HERMES_DATA_DIR:-./data/hermes}"; }
+seed_solar_config()    { seed_profile_config solar     "${HERMES_DATA_DIR:-./data/hermes}/profiles/solar"; }
+seed_igus_bot_config() { seed_profile_config igus-bot  "${HERMES_DATA_DIR:-./data/hermes}/profiles/igus-bot"; }
 
 # Seed dev config — always overwrite so changes in config/hermes/dev.config.yaml take effect.
 seed_dev_config() {
@@ -52,19 +53,22 @@ seed_dev_config() {
   echo "Seeded dev config → $dest"
 }
 
-# Start the solar profile gateway inside the running container.
-# Waits up to 60 s for the container to finish initialising, then starts solar gateway.
-start_solar_gateway() {
-  local container="hermes-gateway"
+# Wait for the gateway container to be ready and verify profile gateways are running.
+# Hermes registers per-profile gateways dynamically via /run/service/ at container start;
+# this function just waits and confirms.
+wait_for_gateway() {
+  local container="${1:-hermes-gateway}"
   echo "Waiting for $container to be ready..."
   local i=0
   until docker exec "$container" hermes gateway list &>/dev/null; do
     sleep 3; i=$((i+3))
-    [[ $i -ge 60 ]] && { echo "WARNING: $container not ready after 60 s — skipping solar gateway start"; return; }
+    [[ $i -ge 60 ]] && { echo "WARNING: $container not ready after 60 s"; return; }
   done
-  docker exec "$container" solar gateway start 2>/dev/null || true
-  echo "Solar gateway started."
+  docker exec "$container" hermes gateway list
 }
+
+start_solar_gateway()    { wait_for_gateway; }
+start_igus_bot_gateway() { :; }
 
 cmd="${1:-hello}"
 case "$cmd" in
@@ -101,6 +105,7 @@ case "$cmd" in
     load_env
     seed_config
     seed_solar_config
+    seed_igus_bot_config
     # If growatt profile is active, require .env.growatt
     if [[ "${COMPOSE_PROFILES:-}" == *growatt* ]]; then
       if [[ ! -f .env.growatt ]]; then
@@ -117,6 +122,7 @@ case "$cmd" in
       echo "Gateway started. Add COMPOSE_PROFILES=growatt in .env to also start growatt-bridge."
     fi
     start_solar_gateway
+    start_igus_bot_gateway
     ;;
   -h|--help|help)
     usage
