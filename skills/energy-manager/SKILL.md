@@ -11,7 +11,8 @@ Orchestrates pv-forecast, growatt-bridge, and solar-monitor to make concrete dis
 
 - **PV:** 10.1 kWp, east/west roof, ~30° tilt, Mińsk Mazowiecki PL (52.1812°N, 21.5587°E)
 - **Battery:** 20 kWh nominal — 16 kWh usable (bottom 20% reserved); operational range ~10–90% SOC
-- **EV:** 76 kWh battery — normal ceiling 80% = ~60.8 kWh (life-prolonging default); charging to 100% is acceptable when preparing for a longer trip or when several days of low solar production are forecast
+- **EV:** 76 kWh battery; charging to 100% is acceptable when preparing for a longer trip or when several days of low solar production are forecast
+- **EV charger:** 3-phase only; two power levels available — 5.6 kW or 10.6 kW; no PV-surplus / dynamic mode
 - **Home consumption:** ~20 kWh/day; overnight share (22:00–06:00) ~5–7 kWh
 - **Grid tariff G12** — off-peak (cheaper) windows:
   - Weekdays: 22:00–06:00 and 13:00–15:00
@@ -20,22 +21,27 @@ Orchestrates pv-forecast, growatt-bridge, and solar-monitor to make concrete dis
 
 ## Daily planning workflow
 
-1. Fetch current battery SOC from growatt-bridge (`/api/v1/devices/{sn}/telemetry` → `battery_soc`)
-2. Ask user for current EV charge % if not available via app
+1. Pull current battery SOC from growatt-bridge (`/api/v1/devices/{sn}/telemetry` → `battery_soc`) — always fetch this automatically, never ask the user.
+2. Reuse any EV charge % already known in the current conversation or user memory; do **not** re-ask if it is already available.
 3. Fetch today's remaining forecast + tomorrow's full forecast (pv-forecast skill, both strings combined)
 4. Determine scenario and give a concrete recommendation (see below)
 
 Always state the key numbers: expected production, current battery, EV state, recommended action in kWh.
 
+See `references/away-window-charging.md` for the away-during-solar-peak charging pattern and quick kWh math.
+
 ## Scenario A — Sunny day, leaving with the car
 
 Goal: prevent battery from hitting 100% and exporting while the user is away; maintain enough reserve for the night.
+
+If the EV is away during the morning solar ramp and returns for the midday peak, charge it *after return* at 5.6 kW (the lower of the two available power levels) so it soaks up forecast surplus before the battery tops out.
 
 ```
 available_solar_excess = forecast_remaining - estimated_home_load_until_return
 overnight_reserve      = 6 kWh  (covers ~22:00–06:00 at half typical overnight draw)
 battery_headroom       = battery_current_kwh - overnight_reserve
-ev_can_absorb          = 60.8 - ev_current_kwh
+ev_target_kwh          = 76 if trip_or_low_solar else ask_user_or_use_last_known
+ev_can_absorb          = ev_target_kwh - ev_current_kwh
 
 recommend_ev_charge    = min(available_solar_excess + battery_headroom, ev_can_absorb)
 ```
