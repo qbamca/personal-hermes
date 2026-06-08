@@ -32,7 +32,7 @@ load_env() {
 seed_profile_config() {
   local profile="$1" dest_dir="$2"
   mkdir -p "$dest_dir"
-  for file in config.yaml .env; do
+  for file in config.yaml .env SOUL.md profile.yaml; do
     local src="profiles/$profile/$file" dest="$dest_dir/$file"
     if [[ -f "$src" && ! -f "$dest" ]]; then
       cp "$src" "$dest"
@@ -42,8 +42,9 @@ seed_profile_config() {
 }
 
 seed_config()          { seed_profile_config default    "${HERMES_DATA_DIR:-./data/hermes}"; }
-seed_solar_config()    { seed_profile_config solar     "${HERMES_DATA_DIR:-./data/hermes}/profiles/solar"; }
-seed_igus_bot_config() { seed_profile_config igus-bot  "${HERMES_DATA_DIR:-./data/hermes}/profiles/igus-bot"; }
+seed_solar_config()      { seed_profile_config solar      "${HERMES_DATA_DIR:-./data/hermes}/profiles/solar"; }
+seed_igus_bot_config()   { seed_profile_config igus-bot   "${HERMES_DATA_DIR:-./data/hermes}/profiles/igus-bot"; }
+seed_accountant_config() { seed_profile_config accountant "${HERMES_DATA_DIR:-./data/hermes}/profiles/accountant"; }
 
 # Seed dev config — always overwrite so changes in config/hermes/dev.config.yaml take effect.
 seed_dev_config() {
@@ -67,8 +68,9 @@ wait_for_gateway() {
   docker exec "$container" hermes gateway list
 }
 
-start_solar_gateway()    { wait_for_gateway; }
-start_igus_bot_gateway() { :; }
+start_solar_gateway()      { wait_for_gateway; }
+start_igus_bot_gateway()   { :; }
+start_accountant_gateway() { :; }
 
 cmd="${1:-hello}"
 case "$cmd" in
@@ -106,6 +108,7 @@ case "$cmd" in
     seed_config
     seed_solar_config
     seed_igus_bot_config
+    seed_accountant_config
     # If growatt profile is active, require .env.growatt
     if [[ "${COMPOSE_PROFILES:-}" == *growatt* ]]; then
       if [[ ! -f .env.growatt ]]; then
@@ -123,6 +126,7 @@ case "$cmd" in
     fi
     start_solar_gateway
     start_igus_bot_gateway
+    start_accountant_gateway
     ;;
   -h|--help|help)
     usage
